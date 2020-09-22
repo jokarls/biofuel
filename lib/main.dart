@@ -30,6 +30,7 @@ class StationsMap extends StatefulWidget {
 class StationsMapState extends State<StationsMap> {
 
   final Firestore firestore = Firestore.instance;
+
   final Map<MarkerId, Marker> markers = {};
   final LatLng _center = const LatLng(59.245361, 18.000586);
 
@@ -43,17 +44,23 @@ class StationsMapState extends State<StationsMap> {
   @override
   void initState() {
     super.initState();
-    final markerId = MarkerId('oD5cxde5Blki3l0t9VSX');
-    final marker = Marker(
-        markerId: markerId,
-        position: LatLng(59.245361, 18.000586),
-        infoWindow: InfoWindow(
-            title: 'Huddinge Huddingevägen',
-            snippet: 'OKQ8 Huddingevägen 367 Hudding'
-        )
-    );
-
-    markers[markerId] = marker;
+    firestore.collection('stations').getDocuments().then((snapshot) => {
+      snapshot.documents.forEach((document) {
+        final MarkerId markerId = MarkerId(document.documentID);
+        final GeoPoint location = document.data['location'];
+        final marker = Marker(
+            markerId: markerId,
+            position: LatLng(location.latitude, location.longitude),
+            infoWindow: InfoWindow(
+                title: document.data['brand'] + ' ' + document.data['name'],
+                snippet: document.data['street'] + ' ' + document.data['city']
+            )
+        );
+        setState(() {
+          markers[markerId] = marker;
+        });
+      })
+    });
   }
 
   @override
@@ -65,8 +72,7 @@ class StationsMapState extends State<StationsMap> {
         target: _center,
         zoom: 11.0,
       ),
-      markers: Set.of(markers.values)
+      markers: markers.values.toSet()
     );
   }
-
 }
